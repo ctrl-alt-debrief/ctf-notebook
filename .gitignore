@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+
+# CTF Notebook — generated data (never commit personal solve data or the index)
+notebook/solves.db
+notebook/solves.db-shm
+notebook/solves.db-wal
+notebook/search_index/
+
+# Legacy db name (older sessions)
+notebook/notebook.db
+
+# ChromaDB working files
+.chroma/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Claude Code session data
+.claude/
+
+# CTF challenge files — never commit flags or challenge binaries
+flags.txt
+*.flag

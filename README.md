@@ -185,15 +185,15 @@ $ python main.py --edit
 The hint finder does not match keywords. It uses **vector similarity search**:
 
 ```
-Your description  ──► embedding model ──► 384-dim vector
-                                                │
-                                         ChromaDB index
-                                                │
-Past page #1 ─────────────────────────► 384-dim vector  ← L2 distance computed
-Past page #2 ─────────────────────────► 384-dim vector
-Past page #3 ─────────────────────────► 384-dim vector
-                                                │
-                                    Closest pages returned
+Your description  ──► embedding model ──► vector
+                                              │
+                                       ChromaDB index
+                                              │
+Past page #1 ─────────────────────────► vector ─┐
+Past page #2 ─────────────────────────► vector ─┼─ distances compared
+Past page #3 ─────────────────────────► vector ─┘
+                                              │
+                                  Closest pages returned
 ```
 
 The embedding model (`all-MiniLM-L6-v2`) runs **100% locally** — no API call,
@@ -205,31 +205,30 @@ index is lost or corrupted, every page can be re-embedded from the SQLite rows.
 
 ---
 
-## Key Engineering Decisions
+## Notes on the Code
 
-**Dependency injection throughout** — `sqlite3.Connection` and the ChromaDB
-`Collection` are opened once in `session.run()` and passed to every downstream
-function. No function opens its own connection. One resource, created once,
-shared cleanly.
+**One connection, passed everywhere** — the database and search index are opened
+once at the start of a session and passed down to every function that needs them.
+Nothing re-opens its own connection mid-session. Simpler to reason about and faster.
 
-**SQL injection prevention** — every query uses parameterized placeholders (`?`),
-never f-strings or string concatenation. The CHANGELOG has a dedicated section
-on this with the vulnerable vs. safe pattern side by side.
+**SQL injection prevention** — every database query uses parameterized placeholders
+(`?`), never string formatting or concatenation. The CHANGELOG has a section on this
+with the vulnerable pattern and the safe pattern side by side, since it's a common
+mistake worth documenting.
 
-**Input validation at write time** — `write_page()` and `update_page()` validate
-chapter and difficulty against a `VALID_CHAPTERS` / `VALID_DIFFICULTIES` allowlist,
-normalize tag strings (strip whitespace around commas), and enforce per-field
-character limits to prevent runaway inputs.
+**Input is validated before anything gets saved** — chapter and difficulty are checked
+against a fixed list of valid values, tag strings are normalized (whitespace around
+commas stripped), and each field has a length limit. A typo in a chapter name raises
+an error immediately instead of silently saving bad data.
 
-**Single `Console` instance** — Rich's `Console` handles terminal width, colour
-support, and output buffering. All output goes through one instance passed top-down,
-so spinner animations never get corrupted by a rogue `print()` from a deeper module.
-(This was a real bug — see v0.5.1 in the CHANGELOG.)
+**All output goes through one place** — every function that prints anything receives
+the same output object rather than creating its own. When that's not the case,
+a stray `print()` inside a loading spinner corrupts the terminal animation. This was
+a real bug — see v0.5.1 in the CHANGELOG.
 
-**`!q` cancel token** — typing `!q` at any prompt during a write-up abandons the
-session cleanly with nothing saved. Single-letter tokens like `q` or `x` conflict
-with real field content (`x86`, `xss`, a tool called `x`). `!q` cannot appear in
-a field value by accident.
+**`!q` cancels a write-up cleanly** — typing `!q` at any prompt abandons the session
+with nothing saved. Single letters like `q` or `x` would conflict with real field
+content (`x86`, `xss`). `!q` can't appear in a field value by accident.
 
 ---
 
@@ -254,8 +253,8 @@ ctf-notebook/
 ├── main.py                  ← entry point — argparse, routes to session or edit mode
 │
 ├── notebook/                ← the storage and search layer
-│   ├── database.py          ← SQLite: SolvePage dataclass, write/read/update/validate
-│   └── search.py            ← ChromaDB: index_page(), flip_to(), open_search_index()
+│   ├── database.py          ← reads and writes pages (SQLite)
+│   └── search.py            ← converts pages to vectors and searches them (ChromaDB)
 │
 ├── solver/                  ← the active session layer
 │   ├── session.py           ← orchestrates one challenge from start to finish

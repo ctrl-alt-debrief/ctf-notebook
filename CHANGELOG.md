@@ -15,6 +15,23 @@ Nothing — see stretch goals in CLAUDE.md.
 
 ---
 
+## [0.5.7] — 2026-07-10
+
+### Changed
+- **README rewrite** — replaced the previous overview with a full terminal walkthrough
+  covering all three modes (session, write page, edit). Added an annotated diagram of
+  how vector search works and a plain-English "Notes on the Code" section covering the
+  key design decisions (connection passing, SQL injection prevention, input validation,
+  output routing, `!q` cancel).
+- **`.gitignore` updated** — now correctly excludes `notebook/solves.db` (and WAL files),
+  `notebook/search_index/`, `.DS_Store`, `.pytest_cache/`, `.claude/`, and
+  `notebook/notebook.db` (legacy name). Previous `.gitignore` only excluded ChromaDB's
+  `.chroma/` directory and the old database name.
+- **Clone URL fixed** — README install instructions previously had `yourusername` as a
+  placeholder; updated to the real GitHub username.
+
+---
+
 ## [0.5.6] — 2026-04-15
 
 ### Added
